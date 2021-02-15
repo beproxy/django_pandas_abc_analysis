@@ -1,6 +1,24 @@
 from django.db import models
 
 
+
+class AuthUser(models.Model):
+    password = models.CharField(max_length=128)
+    last_login = models.DateTimeField(blank=True, null=True)
+    is_superuser = models.BooleanField()
+    username = models.CharField(unique=True, max_length=150)
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=150)
+    email = models.CharField(max_length=254)
+    is_staff = models.BooleanField()
+    is_active = models.BooleanField()
+    date_joined = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'auth_user'
+
+
 class DataAssortmentDate(models.Model):
     dt = models.DateField()
     client_id = models.IntegerField()
@@ -338,7 +356,7 @@ class DataShop(models.Model):
     client = models.ForeignKey('ProfileClient', models.DO_NOTHING)
     changed = models.BooleanField()
     format = models.ForeignKey('DataShopformat', models.DO_NOTHING, blank=True, null=True)
-    group_id = models.CharField(max_length=-1, blank=True, null=True)
+    group_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -358,9 +376,9 @@ class DataShopAccess(models.Model):
 
 
 class DataShopGroups(models.Model):
-    group_id = models.CharField(primary_key=True, max_length=-1)
-    parent_id = models.CharField(max_length=-1, blank=True, null=True)
-    name = models.CharField(max_length=-1, blank=True, null=True)
+    group_id = models.CharField(primary_key=True, max_length=255)
+    parent_id = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
     client_id = models.IntegerField()
 
     class Meta:
@@ -407,3 +425,20 @@ class DataTerminal(models.Model):
         managed = False
         db_table = 'data_terminal'
         unique_together = (('client', 'shop', 'cid'),)
+
+
+
+class ProfileClient(models.Model):
+    date_from = models.DateField(blank=True, null=True)
+    date_to = models.DateField(blank=True, null=True)
+    name = models.CharField(max_length=100)
+    receive_conf = models.TextField()  # This field type is a guess.
+    first_load = models.BooleanField()
+    connector = models.CharField(max_length=30, blank=True, null=True)
+    db_name = models.CharField(max_length=100)
+    connector_config = models.TextField()
+    db_encoding = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'profile_client'
