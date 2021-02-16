@@ -1,14 +1,18 @@
 import json
 
+from django.db.models import Sum
 from django.shortcuts import render
 import pandas as pd
 from django.http import HttpResponse
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from settings import settings
 from testdb.calculations import Manipulation
-
+from testdb.models import DataProductsale
+from testdb.serializers import QuantitySalesBrandsSerializer
 
 
 def index(request):
@@ -59,10 +63,11 @@ class TurnoverBrandsView(APIView):
 class QuantitySalesBrandsView(APIView):
 
     def get(self, request, format=None):
-        manipulation = Manipulation()
-        data = manipulation.quantity_sales_brands().to_json()
-        parsed = json.loads(data)
-        return Response(parsed)
+        qs = DataProductsale.objects.filter(qty__gte=0).values('qty', "product__brand__name") \
+            .annotate(total=Sum('qty')) \
+            .order_by("product__brand__name").distinct()
+        serializer = QuantitySalesBrandsSerializer(qs, many=True)
+        return Response({'context': serializer.data})
 
 # View Quantity of receipts by brands
 class QuantityReceiptsBrandsView(APIView):
@@ -77,8 +82,16 @@ class QuantityReceiptsBrandsView(APIView):
 class AbcAnalysisView(APIView):
 
     def get(self, request, format=None):
-        id = self.request.GET.get('shop_id')
+        try:
+            id = self.request.GET.get('shop_id')
+        except Exception as err:
+            print(err)
         manipulation = Manipulation()
-        data = manipulation.abc_analysis(id).to_json()
+        if id != None:
+            data = manipulation.abc_analysis(id).to_json()
+            parsed = json.loads(data)
+            return Response({f'shop_{id}': parsed})
+
+        data = manipulation.shops_abc_analysis().to_json()
         parsed = json.loads(data)
-        return Response({f'shop_{id}': parsed})
+        return Response(parsed)

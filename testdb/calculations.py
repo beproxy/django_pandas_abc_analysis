@@ -1,5 +1,7 @@
 from testdb.models import DataProductsale
+from django.db.models import Avg, Count, Min, Sum
 import pandas as pd
+import numpy as np
 
 
 class Manipulation:
@@ -35,7 +37,9 @@ class Manipulation:
     # Quantity of sales by brands
     def quantity_sales_brands(self):
         try:
-            qs = DataProductsale.objects.filter(qty__gte=0).values('qty', "product__brand__name")
+            qs = DataProductsale.objects.filter(qty__gte=0).values('qty', "product__brand__name")\
+                .annotate(total=Sum('qty'))\
+                .order_by("product__brand__name").distinct("product__brand__name")
         except Exception as err:
             print(err)
         df = pd.DataFrame(qs)
@@ -67,3 +71,21 @@ class Manipulation:
         df['abc'] = df['percent'].apply(self.abc_segmentation)
         df = df.drop(columns=['cum_sum', 'percent', 'total_sum', 'turnover'])
         return df.squeeze('columns')
+
+    def shops_abc_analysis(self):
+        try:
+            qs = DataProductsale.objects.filter(total_price__gte=0).values('shop', 'total_price', "product")[:100000]
+        except Exception as err:
+            print(err)
+        df = pd.DataFrame(qs)
+        df.set_index(['shop', 'product'], inplace=True)
+        df = df.groupby(['shop', 'product']).total_price.sum()
+        df = df.to_frame()
+        df = df.rename(columns={'total_price': "turnover"})
+        df = df.sort_values(by=['shop', 'turnover'], ascending=False)
+        df['cum_sum'] = df['turnover'].cumsum()
+        df['total_sum'] = df['turnover'].sum()
+        df['percent'] = df['cum_sum'] / df['total_sum']
+        df['abc'] = df['percent'].apply(self.abc_segmentation)
+        df = df.drop(columns=['cum_sum', 'percent', 'total_sum', 'turnover'])
+        return df
