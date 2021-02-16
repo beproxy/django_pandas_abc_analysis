@@ -3,6 +3,16 @@ import pandas as pd
 
 
 class Manipulation:
+
+    @staticmethod
+    def abc_segmentation(percent):
+        if percent > 0 and percent < 0.8:
+            return 'A'
+        elif percent >= 0.8 and percent < 0.95:
+            return 'B'
+        elif percent >= 0.95:
+            return 'C'
+
     # Average check for the store
     def average_check(self):
         try:
@@ -20,7 +30,7 @@ class Manipulation:
         except Exception as err:
             print(err)
         df = pd.DataFrame(qs)
-        return df.groupby(['product__brand__name']).sum()
+        return df.groupby(['product__brand__name']).total_price.sum()
 
     # Quantity of sales by brands
     def quantity_sales_brands(self):
@@ -29,7 +39,7 @@ class Manipulation:
         except Exception as err:
             print(err)
         df = pd.DataFrame(qs)
-        return df.groupby(['product__brand__name']).sum()
+        return df.groupby(['product__brand__name']).qty.sum()
 
     # Quantity of receipts by brands
     def quantity_receipts_brands(self):
@@ -40,17 +50,20 @@ class Manipulation:
         df = pd.DataFrame(qs)
         return df.groupby(['product__brand__name']).size()
 
-    # Withdraw Group A goods by turnover (ABC analysis)
-    def abc_analysis(self):
+    # ABC analysis a product by turnover by the shop ID
+    def abc_analysis(self, id):
         try:
-            qs = DataProductsale.objects.filter(margin_price_total__gte=0).values('margin_price_total', "product", "shop__name")
+            qs = DataProductsale.objects.filter(shop_id=id, total_price__gte=0).values('total_price', "product")
         except Exception as err:
             print(err)
         df = pd.DataFrame(qs)
-        df = df.groupby(['product', "shop__name"]).sum()
-        total_margin_shop = df.drop(['product'], axis=1)
-        df['total_margin_shop'] = df.groupby(["shop__name"]).margin_price_total.sum()
-
-        df.margin_price_total = df.margin_price_total * 100 / total_margin_shop[df[df.shop__name]]
-        # df.sort_values(by='margin_price_total', ascending=False)
-        return df
+        df = df.groupby(['product']).total_price.sum()
+        df = df.to_frame()
+        df = df.rename(columns={'total_price': "turnover"})
+        df = df.sort_values(by='turnover', ascending=False)
+        df['cum_sum'] = df['turnover'].cumsum()
+        df['total_sum'] = df['turnover'].sum()
+        df['percent'] = df['cum_sum'] / df['total_sum']
+        df['abc'] = df['percent'].apply(self.abc_segmentation)
+        df = df.drop(columns=['cum_sum', 'percent', 'total_sum', 'turnover'])
+        return df.squeeze('columns')
