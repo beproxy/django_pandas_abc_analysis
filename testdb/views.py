@@ -11,8 +11,9 @@ from rest_framework.views import APIView
 
 from settings import settings
 from testdb.calculations import Manipulation
-from testdb.models import DataProductsale
-from testdb.serializers import QuantitySalesBrandsSerializer
+from testdb.models import DataProductsale, DataCategory, DataProduct
+from testdb.serializers import QuantitySalesBrandsSerializer, ProductSaleDetailsSerializer, ProductDetailsSerializer
+from django.db.models import F
 
 
 def index(request):
@@ -40,34 +41,47 @@ def data_to_csv_view(request):
     return response
 
 
+# Product Sale Details view
+class ProductSaleDetailView(APIView):
+
+    def get(self, request, pk):
+        queryset = DataProductsale.objects.get(id=pk)
+        qs = DataProduct.objects.get(id='23470')
+        sr = ProductDetailsSerializer(qs)
+        print(sr.data)
+        serializer = ProductSaleDetailsSerializer(queryset)
+        return Response(serializer.data)
+
+
 # View Average check for the store
 class AverageCheckView(APIView):
-    # renderer_classes = [JSONRenderer]
 
     def get(self, request, format=None):
         manipulation = Manipulation()
-        data = manipulation.average_check().to_json()
+        data = manipulation.average_check()
         parsed = json.loads(data)
         return Response(parsed)
+
 
 # View Turnover of brands
 class TurnoverBrandsView(APIView):
 
     def get(self, request, format=None):
         manipulation = Manipulation()
-        data = manipulation.turnover_brands().to_json()
+        data = manipulation.turnover_brands()
         parsed = json.loads(data)
         return Response(parsed)
+
 
 # View Quantity of sales by brands
 class QuantitySalesBrandsView(APIView):
 
-    def get(self, request, format=None):
-        qs = DataProductsale.objects.filter(qty__gte=0).values('qty', "product__brand__name") \
-            .annotate(total=Sum('qty')) \
-            .order_by("product__brand__name").distinct()
+    def get(self, request):
+        qs = DataProductsale.objects.filter(qty__gte=0).values(brand=F("product__brand__name")) \
+            .annotate(total=Sum('qty'))
         serializer = QuantitySalesBrandsSerializer(qs, many=True)
-        return Response({'context': serializer.data})
+        return Response(serializer.data)
+
 
 # View Quantity of receipts by brands
 class QuantityReceiptsBrandsView(APIView):
@@ -78,7 +92,16 @@ class QuantityReceiptsBrandsView(APIView):
         parsed = json.loads(data)
         return Response(parsed)
 
-# View ABC analysis a product by turnover by the shop ID
+# View aggregate data by brands
+class AggregateDataBrandsView(APIView):
+
+    def get(self, request, format=None):
+        manipulation = Manipulation()
+        data = manipulation.aggregate_data_brands()
+        parsed = json.loads(data)
+        return Response(parsed)
+
+# View ABC analysis of products by turnover by shop ID or all shops
 class AbcAnalysisView(APIView):
 
     def get(self, request, format=None):
@@ -88,10 +111,10 @@ class AbcAnalysisView(APIView):
             print(err)
         manipulation = Manipulation()
         if id != None:
-            data = manipulation.abc_analysis(id).to_json()
+            data = manipulation.abc_analysis(id)
             parsed = json.loads(data)
             return Response({f'shop_{id}': parsed})
 
-        data = manipulation.shops_abc_analysis().to_json()
+        data = manipulation.shops_abc_analysis()
         parsed = json.loads(data)
         return Response(parsed)

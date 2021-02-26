@@ -358,6 +358,9 @@ class DataShop(models.Model):
     format = models.ForeignKey('DataShopformat', models.DO_NOTHING, blank=True, null=True)
     group_id = models.CharField(max_length=255, blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         managed = False
         db_table = 'data_shop'

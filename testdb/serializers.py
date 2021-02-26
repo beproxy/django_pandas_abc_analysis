@@ -1,21 +1,46 @@
 from rest_framework import serializers
 
-from testdb.models import DataProductsale, DataProduct
+from testdb.models import DataProductsale, DataProduct, DataBrand, DataShop
 
 
-class QuantitySalesBrandsSerializer(serializers.ModelSerializer):
-#    qty = serializers.DecimalField(max_digits=20, decimal_places=4)
-    product = serializers.RelatedField(read_only=True)
+class QuantitySalesBrandsSerializer(serializers.Serializer):
+    brand = serializers.CharField(max_length=150)
+    total = serializers.DecimalField(max_digits=20, decimal_places=4)
 
     class Meta:
         model = DataProductsale
-        fields = ('qty', 'product')
+        fields = ('brand', 'total')
 
 
-class DataProductsSerializer(serializers.ModelSerializer):
-#    qty = serializers.DecimalField(max_digits=20, decimal_places=4)
-    brands = QuantitySalesBrandsSerializer(read_only=True)
+class ProductSaleDetailsSerializer(serializers.ModelSerializer):
+    product = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    shop = serializers.SlugRelatedField(slug_field="name", read_only=True)
+
+    class Meta:
+        model = DataProductsale
+        fields = '__all__'
+
+
+# Product Details
+class ProductDetailsSerializer(serializers.ModelSerializer):
+    brand = serializers.SlugRelatedField(slug_field="name", read_only=True)
 
     class Meta:
         model = DataProduct
-        fields = ('brand_product')
+        fields = '__all__'
+
+
+# Brand Details
+class BrandDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DataBrand
+        fields = ('name',)
+
+
+# Shop Details
+class ShopDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DataShop
+        fields = ('name',)
