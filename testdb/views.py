@@ -1,6 +1,5 @@
 import json
 
-from django.db.models import Sum
 from django.shortcuts import render
 import pandas as pd
 from django.http import HttpResponse
@@ -12,8 +11,9 @@ from rest_framework.views import APIView
 from settings import settings
 from testdb.calculations import Manipulation
 from testdb.models import DataProductsale, DataCategory, DataProduct
-from testdb.serializers import QuantitySalesBrandsSerializer, ProductSaleDetailsSerializer, ProductDetailsSerializer
-from django.db.models import F
+from testdb.serializers import QuantitySalesBrandsSerializer, ProductSaleDetailsSerializer, ProductDetailsSerializer, \
+    TurnoverBrandsSerializer, AverageCheckStoreSerializer, QuantityChecksBrandSerializer
+from django.db.models import F, Avg, Sum, Count, DecimalField, ExpressionWrapper
 
 
 def index(request):
@@ -45,10 +45,10 @@ def data_to_csv_view(request):
 class ProductSaleDetailView(APIView):
 
     def get(self, request, pk):
-        queryset = DataProductsale.objects.get(id=pk)
-        qs = DataProduct.objects.get(id='23470')
-        sr = ProductDetailsSerializer(qs)
-        print(sr.data)
+        try:
+            queryset = DataProductsale.objects.get(id=pk)
+        except Exception as err:
+            print(err)
         serializer = ProductSaleDetailsSerializer(queryset)
         return Response(serializer.data)
 
@@ -57,40 +57,61 @@ class ProductSaleDetailView(APIView):
 class AverageCheckView(APIView):
 
     def get(self, request, format=None):
-        manipulation = Manipulation()
-        data = manipulation.average_check()
-        parsed = json.loads(data)
-        return Response(parsed)
+        try:
+            queryset = DataProductsale.objects.filter(total_price__gte=0) \
+                .values(store=F("shop__name"))[:10000] \
+                .annotate(avg_sum_check=ExpressionWrapper(
+                    Sum(F('total_price')) / Count(F('receipt_id'), distinct=True),
+                    output_field=DecimalField(max_digits=20, decimal_places=2)
+                )
+            )
+        except Exception as err:
+            print(err)
+        serializer = AverageCheckStoreSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 # View Turnover of brands
 class TurnoverBrandsView(APIView):
 
     def get(self, request, format=None):
-        manipulation = Manipulation()
-        data = manipulation.turnover_brands()
-        parsed = json.loads(data)
-        return Response(parsed)
+        try:
+            queryset = DataProductsale.objects.filter(total_price__gte=0) \
+                .values(store=F("shop__name"), brand=F('product__brand__name'))[:10000] \
+                .annotate(total_turnover=Sum('total_price'))
+        except Exception as err:
+            print(err)
+        serializer = TurnoverBrandsSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 # View Quantity of sales by brands
 class QuantitySalesBrandsView(APIView):
 
     def get(self, request):
-        qs = DataProductsale.objects.filter(qty__gte=0).values(brand=F("product__brand__name")) \
-            .annotate(total=Sum('qty'))
-        serializer = QuantitySalesBrandsSerializer(qs, many=True)
+        try:
+            queryset = DataProductsale.objects.filter(qty__gte=0) \
+                .values(brand=F("product__brand__name")) \
+                .annotate(total=Sum('qty'))
+        except Exception as err:
+            print(err)
+        serializer = QuantitySalesBrandsSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
-# View Quantity of receipts by brands
+# View Quantity of checks by brands
 class QuantityReceiptsBrandsView(APIView):
 
     def get(self, request, format=None):
-        manipulation = Manipulation()
-        data = manipulation.quantity_receipts_brands().to_json()
-        parsed = json.loads(data)
-        return Response(parsed)
+        try:
+            queryset = DataProductsale.objects.filter(total_price__gte=0) \
+                .values(brand=F("product__brand__name"))[:10000] \
+                .annotate(quantity_checks=Count('receipt_id'))
+        except Exception as err:
+            print(err)
+        serializer = QuantityChecksBrandSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 # View aggregate data by brands
 class AggregateDataBrandsView(APIView):
@@ -100,6 +121,7 @@ class AggregateDataBrandsView(APIView):
         data = manipulation.aggregate_data_brands()
         parsed = json.loads(data)
         return Response(parsed)
+
 
 # View ABC analysis of products by turnover by shop ID or all shops
 class AbcAnalysisView(APIView):
