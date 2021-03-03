@@ -1,15 +1,15 @@
 from rest_framework import serializers
 
-from testdb.models import DataProductsale, DataProduct, DataBrand, DataShop
+from testdb.models import Sales, Product, Brand, Store
 
 
 
-class ProductSaleDetailsSerializer(serializers.ModelSerializer):
+class SalesDetailsSerializer(serializers.ModelSerializer):
     product = serializers.SlugRelatedField(slug_field="name", read_only=True)
     shop = serializers.SlugRelatedField(slug_field="name", read_only=True)
 
     class Meta:
-        model = DataProductsale
+        model = Sales
         fields = '__all__'
 
 
@@ -18,7 +18,7 @@ class ProductDetailsSerializer(serializers.ModelSerializer):
     brand = serializers.SlugRelatedField(slug_field="name", read_only=True)
 
     class Meta:
-        model = DataProduct
+        model = Product
         fields = '__all__'
 
 
@@ -26,15 +26,15 @@ class ProductDetailsSerializer(serializers.ModelSerializer):
 class BrandDetailsSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DataBrand
+        model = Brand
         fields = ('name',)
 
 
-# Shop Details
-class ShopDetailsSerializer(serializers.ModelSerializer):
+# Store Details
+class StoreDetailsSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DataShop
+        model = Store
         fields = ('name',)
 
 
@@ -44,7 +44,7 @@ class QuantitySalesBrandsSerializer(serializers.Serializer):
     total = serializers.DecimalField(max_digits=20, decimal_places=4)
 
     class Meta:
-        model = DataProductsale
+        model = Sales
         fields = ('brand', 'total')
 
 
@@ -55,7 +55,7 @@ class TurnoverBrandsSerializer(serializers.Serializer):
     total_turnover = serializers.DecimalField(max_digits=20, decimal_places=4)
 
     class Meta:
-        model = DataProductsale
+        model = Sales
         fields = ('store', 'brand', 'total_turnover')
 
 
@@ -65,7 +65,7 @@ class AverageCheckStoreSerializer(serializers.Serializer):
     avg_sum_check = serializers.DecimalField(max_digits=20, decimal_places=2)
 
     class Meta:
-        model = DataProductsale
+        model = Sales
         fields = ('store', 'avg_sum_check')
 
 
@@ -75,6 +75,6 @@ class QuantityChecksBrandSerializer(serializers.Serializer):
     quantity_checks = serializers.IntegerField()
 
     class Meta:
-        model = DataProductsale
+        model = Sales
         fields = ('brand', 'quantity_checks')
 
