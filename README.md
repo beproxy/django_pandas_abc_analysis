@@ -3,7 +3,7 @@ Used Python 3.6, Django 2.2.5, DRF, ORM, Pandas, Logging
 
 Tasks
 ```
-Aggregate, calculations of data from DB (PostgreSQL)
+Aggregate, calculations (ABC analysis) of data from DB (PostgreSQL)
 
 Output:
  As file csv
