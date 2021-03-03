@@ -25,4 +25,3 @@ Use Pandas
 'api/brand/abc_analysis/?store_id=<int:id>' - ABC analysis of products by turnover by the store ID
 'api/brands/aggregate_data/' - ABC analysis of products by turnover by the all stores
 ```
-
